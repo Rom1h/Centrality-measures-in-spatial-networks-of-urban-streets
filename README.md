@@ -26,9 +26,13 @@ Pour exécuter l’image :
 docker run nom_de_votre_image
 ```
 #### Privilèges administrateur
-Selon la configuration de votre machine, il se peut que vous
- deviez exécuter les commandes Docker avec des privilèges administrateur.
-Vous pouvez le faire en utilisant sudo, mais ce n’est pas recommandé dans la plupart des cas :
+Selon la configuration de votre machine, il se peut que vous deviez exécuter les commandes Docker avec des privilèges administrateur. <br>
+Dans ce cas, il est préférable d’ajouter votre utilisateur au groupe Docker,afin de pouvoir exécuter les commandes sans utiliser sudo :
+
+```bash
+j'ajouterai la commande plus tard
+```
+Si vous préférez malgré tout exécuter les commandes avec sudo (ce qui n’est pas recommandé), vous pouvez le faire ainsi :
 ```bash
 sudo docker build -t nom_de_votre_image .
 ```
