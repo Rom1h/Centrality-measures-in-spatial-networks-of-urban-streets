@@ -6,10 +6,12 @@ WORKDIR /app
 
 # Copy requirements
 COPY requirements.txt .
-COPY main.py .
 
 # Install Dependencies
 RUN pip install --no-cache-dir -r requirements.txt
+
+# to avoid it redownloading everytime we change main.py
+COPY main.py .
 
 # Default command
 CMD ["python3", "main.py"]
