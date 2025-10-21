@@ -9,7 +9,7 @@ import osmnx as ox
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
-
+import networkx as nx
 # Make output folder
 os.makedirs("output", exist_ok=True)
 
@@ -25,20 +25,27 @@ Network type optipns can be found in the function's definition
 """
 G = ox.graph_from_place("Paris, France", network_type="drive")
 
+print(f"type : {type(G)}")
+
 def djikstra_shortest_paths(G, source, weight="length"):
     """
-    Djikrstra's algorithm to compute shortest paths from a source node to all other nodes in the graph.
-    """
+    Dijkstra's algorithm to compute shortest paths from a source node to all other nodes in the graph.
+    Returns both the distances dict and the total sum of distances.
 
+    Returns total distance so that we can avoid doing another O(n) in Closeness calculation.
+    """
     distances = {source: 0}
     pq = [(0, source)]
     visited = set()
+    total_distance = 0  # accumulate distances here
 
     while pq:
         concurrent_distance, current_node = heapq.heappop(pq)
         if current_node in visited:
             continue
         visited.add(current_node)
+        total_distance += concurrent_distance  # accumulate as we finalize a node
+
         for neighbor in G.neighbors(current_node):
             edge_weight = G[current_node][neighbor][0][weight]
             distance = concurrent_distance + edge_weight
@@ -46,69 +53,71 @@ def djikstra_shortest_paths(G, source, weight="length"):
             if neighbor not in distances or distance < distances[neighbor]:
                 distances[neighbor] = distance
                 heapq.heappush(pq, (distance, neighbor))
-    return distances
 
-#prototype , really slow for large graphs
-def Closeness(G, node):
-    """
-    Compute closeness centrality of a single node.
-    """
-    N = len(G.nodes)
-    distances = djikstra_shortest_paths(G, node)
-    total_distance = sum(distances.values())
-    if total_distance > 0 and N > 1:
-        closeness = (N - 1) / total_distance
-    else:
-        closeness = 0
-    return closeness
+    return distances, total_distance
+
 
 
 def euclidean_distance(y1,x1, y2,x2):
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
-def straightness_helper(G_proj, node, node2):
+def straightness(G_proj):
     """
-    d(Euclidean) i j / d i j
+    Uses the djikstra_shortest_paths to compute the straightness centrality for all nodes in the graph.
+    Uses Euclidean to calculate the straight distance between two nodes
 
-    IMPORTANT ---> Using djikstra to all paths here is a waste , think bout optimisiting it
-    G has to be projected
+    Complexity should be O(N * (E + N) log N)
+    Where N is the number of nodes and E the number of edges
+
     """
-    # Node coordinates (meters)
-    x1, y1 = G_proj.nodes[node]["x"], G_proj.nodes[node]["y"]
-    x2, y2 = G_proj.nodes[node2]["x"], G_proj.nodes[node2]["y"]
+    n = len(G.nodes)
+    straightness = {}
+    for node in G_proj.nodes: # O(n)
 
-    # Euclidean distance in meters
-    euclidean_m = euclidean_distance(y1,x1,y2,x2)
+        paths, _ = djikstra_shortest_paths(G_proj, node) # O(n) at most
+        x1 , y1 = G_proj.nodes[node]["x"], G_proj.nodes[node]["y"]
 
-    # Shortest path distance in meters
-    paths = djikstra_shortest_paths(G, node)
-    shortest_distance = paths[node2]
+        total = 0
+        for j, shortest_distance in paths.items(): # O(n-1) at most , lets call it O(m)
+            if node == j or shortest_distance == 0:
+                continue
+            x2, y2 = G_proj.nodes[j]["x"], G_proj.nodes[j]["y"]
+            euclidean_m = euclidean_distance(y1,x1,y2,x2)
+            total += euclidean_m / shortest_distance
 
-    if shortest_distance == 0:
-        return 0  # avoid division by zero
-
-    print(f"distance = {shortest_distance}")
-    print(f"euclidean = {euclidean_m}")
-    straightness = euclidean_m / shortest_distance
+        straightness[node] = total / (n - 1)
     return straightness
 
-
-# def straightness(G,node):
-
-
-# print("------------------- Closeness Centrality ------------------")
-# print("nodes in graph:", len(G.nodes))
-# print("nodes : " , list(G.nodes)[0])
-node_0 = list(G.nodes)[0]  # Example: first node in the graph
-node_3 = list(G.nodes)[150]
-print("node 0:", node_0)
-# print("Node 0 neighbors , " , list(G.neighbors(node_0)))
-# print("Closeness of node 0:", Closeness(G, node_0))
-
+def Closeness(G):
+    """
+    Compute closeness centrality of a single node.
+    """
+    n = len(G.nodes)
+    if n <= 1:
+        return 0.0
+    closeness = {}
+    for node in G.nodes:
+        distances, total_distance = djikstra_shortest_paths(G, node)
+        if total_distance > 0:
+            closeness[node] = (n-1)/total_distance
+        else:
+            closeness[node] = 0.0
+    return closeness
 
 G_walk_proj = ox.project_graph(G)
 
 node_0 = list(G_walk_proj.nodes)[0]
-node_3 = list(G_walk_proj.nodes)[150]
+node_2 = list(G_walk_proj.nodes)[150]
 
-s = straightness_helper(G_walk_proj, node_0, node_3)
-print(f"Straightness from node 0 to node 3: {s:.3f}")
+paths , total_distance = djikstra_shortest_paths(G_walk_proj, node_0)
+print(f"distance returned = {total_distance} and distance calculated = {sum(paths.values())}")
+
+sub_nodes = list(G_walk_proj.nodes)[:5000]
+G_sub = G_walk_proj.subgraph(sub_nodes).copy()
+
+print("Calculating Closeness Centrality...")
+closeness_centrality = Closeness(G_sub)
+print(f"Closeness Centrality Sample: {list(closeness_centrality.items())[:5]}")
+
+print("Calculating Straightness Centrality...")
+straightness_centrality = straightness(G_sub)
+print(f"Straightness Centrality Sample: {list(straightness_centrality.items())[:5]}")
