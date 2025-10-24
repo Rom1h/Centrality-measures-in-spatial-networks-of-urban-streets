@@ -27,6 +27,36 @@ G = ox.graph_from_place("Paris, France", network_type="drive")
 
 print(f"type : {type(G)}")
 
+def table_info(G):
+    # Convert the NetworkX graph G into GeoDataFrames
+    nodes, edges = ox.graph_to_gdfs(G)
+
+    # --- NODE INFORMATION ---
+    print("--- Nodes DataFrame Information ---")
+    print("---- Nodes DataFrame columns")
+    print(nodes.columns)
+
+    print("-----------Nodes type---------------")
+    # The .info() method prints directly and returns None, so we print it separately
+    nodes.info()
+    print("----- First 5 Lines -----------")
+    print(nodes.head(5))
+    print(f"\nNodes DataFrame Shape: {nodes.shape}")
+
+    # --- EDGE INFORMATION (Added details here) ---
+    print("\n" + "="*50) # Separator
+    print("--- Edges DataFrame Information ---")
+    print("---- Edges DataFrame columns")
+    print(edges.columns)
+
+    print("-----------Edges type---------------")
+    # Detailed summary of the Edges DataFrame
+    edges.info()
+    print("----- First 5 Lines -----------")
+    # Prints the first 5 rows of the Edges DataFrame
+    print(edges.head(5))
+    print(f"\nEdges DataFrame Shape: {edges.shape}")
+    print("="*50)
 def djikstra_shortest_paths(G, source, weight="length"):
     """
     Dijkstra's algorithm to compute shortest paths from a source node to all other nodes in the graph.
@@ -103,21 +133,24 @@ def Closeness(G):
             closeness[node] = 0.0
     return closeness
 
-G_walk_proj = ox.project_graph(G)
+# G_walk_proj = ox.project_graph(G)
+#
+# node_0 = list(G_walk_proj.nodes)[0]
+# node_2 = list(G_walk_proj.nodes)[150]
+#
+# paths , total_distance = djikstra_shortest_paths(G_walk_proj, node_0)
+# print(f"distance returned = {total_distance} and distance calculated = {sum(paths.values())}")
+#
+# sub_nodes = list(G_walk_proj.nodes)[:5000]
+# G_sub = G_walk_proj.subgraph(sub_nodes).copy()
+#
+# print("Calculating Closeness Centrality...")
+# closeness_centrality = Closeness(G_sub)
+# print(f"Closeness Centrality Sample: {list(closeness_centrality.items())[:5]}")
+#
+# print("Calculating Straightness Centrality...")
+# straightness_centrality = straightness(G_sub)
+# print(f"Straightness Centrality Sample: {list(straightness_centrality.items())[:5]}")
 
-node_0 = list(G_walk_proj.nodes)[0]
-node_2 = list(G_walk_proj.nodes)[150]
-
-paths , total_distance = djikstra_shortest_paths(G_walk_proj, node_0)
-print(f"distance returned = {total_distance} and distance calculated = {sum(paths.values())}")
-
-sub_nodes = list(G_walk_proj.nodes)[:5000]
-G_sub = G_walk_proj.subgraph(sub_nodes).copy()
-
-print("Calculating Closeness Centrality...")
-closeness_centrality = Closeness(G_sub)
-print(f"Closeness Centrality Sample: {list(closeness_centrality.items())[:5]}")
-
-print("Calculating Straightness Centrality...")
-straightness_centrality = straightness(G_sub)
-print(f"Straightness Centrality Sample: {list(straightness_centrality.items())[:5]}")
+print("Data info")
+table_info(G)
