@@ -10,6 +10,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import networkx as nx
+from visualisation import get_square_mile_nodes
 # Make output folder
 os.makedirs("output", exist_ok=True)
 
@@ -18,14 +19,6 @@ ox.settings.use_cache = True
 ox.settings.log_console = True
 ox.settings.cache_folder = "cache"
 
-
-# Download graph
-"""
-Network type optipns can be found in the function's definition
-"""
-G = ox.graph_from_place("Paris, France", network_type="drive")
-
-print(f"type : {type(G)}")
 
 def table_info(G):
     # Convert the NetworkX graph G into GeoDataFrames
@@ -132,24 +125,31 @@ def Closeness(G):
             closeness[node] = 0.0
     return closeness
 
-# G_walk_proj = ox.project_graph(G)
+
+"""
+Network type optipns can be found in the function's definition
+"""
+G = ox.graph_from_place("Paris, France", network_type="drive")
+G_proj = ox.project_graph(G)
 #
 # node_0 = list(G_walk_proj.nodes)[0]
 # node_2 = list(G_walk_proj.nodes)[150]
 #
 # paths , total_distance = djikstra_shortest_paths(G_walk_proj, node_0)
 # print(f"distance returned = {total_distance} and distance calculated = {sum(paths.values())}")
-#
-# sub_nodes = list(G_walk_proj.nodes)[:5000]
-# G_sub = G_walk_proj.subgraph(sub_nodes).copy()
-#
-# print("Calculating Closeness Centrality...")
-# closeness_centrality = Closeness(G_sub)
-# print(f"Closeness Centrality Sample: {list(closeness_centrality.items())[:5]}")
-#
-# print("Calculating Straightness Centrality...")
-# straightness_centrality = straightness(G_sub)
-# print(f"Straightness Centrality Sample: {list(straightness_centrality.items())[:5]}")
 
-print("Data info")
-table_info(G)
+center_lat, center_lon = ox.geocode("Notre-Dame, Paris, France")
+notre_dame_data = get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1)
+
+G_sub = G_proj.subgraph(notre_dame_data["nodes"]).copy()
+
+print("data = " , notre_dame_data["nodes"])
+
+
+print("Calculating Closeness Centrality...")
+closeness_centrality = Closeness(G_sub)
+print(f"Closeness Centrality Sample: {list(closeness_centrality.items())[:5]}")
+
+print("Calculating Straightness Centrality...")
+straightness_centrality = straightness(G_sub)
+print(f"Straightness Centrality Sample: {list(straightness_centrality.items())[:5]}")

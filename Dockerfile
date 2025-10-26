@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # to avoid it redownloading everytime we change main.py
 COPY main.py .
+COPY visualisation.py .
 
 # Default command
 CMD ["python3", "main.py"]

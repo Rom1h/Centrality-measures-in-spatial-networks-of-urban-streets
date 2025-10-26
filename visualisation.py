@@ -1,6 +1,7 @@
 import matplotlib
 
-matplotlib.use('TkAgg')
+# Only for not docker
+# matplotlib.use('TkAgg')
 import osmnx as ox
 import matplotlib.pyplot as plt
 from shapely.geometry import box, Point
