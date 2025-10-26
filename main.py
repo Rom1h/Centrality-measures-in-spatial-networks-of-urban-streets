@@ -39,7 +39,7 @@ def table_info(G):
     print("-----------Nodes type---------------")
     # The .info() method prints directly and returns None, so we print it separately
     nodes.info()
-    print("----- First 5 Lines -----------")
+    print("--       --- First 5 Lines -----------")
     print(nodes.head(5))
     print(f"\nNodes DataFrame Shape: {nodes.shape}")
 
@@ -48,7 +48,7 @@ def table_info(G):
     print("--- Edges DataFrame Information ---")
     print("---- Edges DataFrame columns")
     print(edges.columns)
-
+    print(edges["length"])
     print("-----------Edges type---------------")
     # Detailed summary of the Edges DataFrame
     edges.info()
@@ -85,7 +85,6 @@ def djikstra_shortest_paths(G, source, weight="length"):
                 heapq.heappush(pq, (distance, neighbor))
 
     return distances, total_distance
-
 
 
 def euclidean_distance(y1,x1, y2,x2):
