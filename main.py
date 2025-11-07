@@ -19,6 +19,40 @@ ox.settings.use_cache = True
 ox.settings.log_console = True
 ox.settings.cache_folder = "cache"
 
+# Begin Information Centrality
+
+def sum_of_distance(G):
+    djik_dist = {}
+    sum_res = 0
+    for i in G.nodes: 
+        djik_dist = djikstra_shortest_paths(G, i)
+        for j in G.nodes:
+            if j != i and j in djik_dist :
+                res_eucl = euclidean_distance(G.nodes[i]["x"], G.nodes[i]["y"], G.nodes[j]["x"], G.nodes[j]["y"])
+                sum_res += res_eucl/djik_dist[j]
+    return sum_res
+
+def efficiency(G, N): 
+    sum_res = sum_of_distance(G)
+    return sum_res/(N *(N - 1))
+
+def information_centrality(G):
+    inf_centr = {}
+    for i in G.nodes :
+        N = len(G.nodes)
+
+        G_prime = G.copy()
+        
+        G_prime.remove_node(i)
+
+        ef = efficiency(G, N)
+        ef_prime = efficiency(G_prime, N)
+
+        inf_centr[i] = (ef-ef_prime)/ef
+    
+    return inf_centr
+
+# End Information Centrality
 
 def table_info(G):
     # Convert the NetworkX graph G into GeoDataFrames
