@@ -4,15 +4,18 @@ import matplotlib
 import osmnx.distance
 
 from centralities import straightness, Closeness , betweenness_centrality
+from utils import nodes_Size_compute
 
-matplotlib.use("Agg")  # Headless-safe backend
+# matplotlib.use("Agg")  # Headless-safe backend for Docker
+matplotlib.use('TkAgg') # For testing on pc
 from functools import lru_cache
 import osmnx as ox
 import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import networkx as nx
-from visualisation import get_square_mile_nodes
+from visualisation import get_square_mile_nodes, plot_p_values
+
 # Make output folder
 os.makedirs("output", exist_ok=True)
 
@@ -73,6 +76,9 @@ G_proj = ox.project_graph(G)
 
 center_lat, center_lon = ox.geocode("Notre-Dame, Paris, France")
 notre_dame_data = get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1)
+print("*" * 60)
+print(notre_dame_data)
+print("*" * 60)
 
 G_sub = G_proj.subgraph(notre_dame_data["nodes"]).copy()
 
@@ -114,3 +120,23 @@ print(f"Taille du sous-graphe de la zone ({distance}m) : {len(G_sub_proj.nodes)}
 bc_sub_area = betweenness_centrality(G_sub_proj, normalized=True)
 print(bc_sub_area)
 
+
+"""
+
+RANDOM GENERATION TEST
+
+"""
+print("*" * 200)
+# --- run and plot for multiple p ---------------------------------------------
+
+cities = [
+    {"nodes": 100, "nb_miles": 1},
+    {"nodes": 150, "nb_miles": 1},
+    {"nodes": 80, "nb_miles": 1},
+]
+
+grid_size = 50
+N = nodes_Size_compute(cities)
+
+p_values = [0, 0.1, 0.2, 1]
+plot_p_values(p_values, N, grid_size)

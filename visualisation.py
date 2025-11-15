@@ -6,35 +6,7 @@ import osmnx as ox
 import matplotlib.pyplot as plt
 from shapely.geometry import box, Point
 
-
-def get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1):
-    """Get all nodes within a square area around a center point."""
-    mile = 1609.34
-    size = nb_miles * mile
-    half_side = size / 2
-
-    center_node = ox.distance.nearest_nodes(G, center_lon, center_lat)
-    center_x = G_proj.nodes[center_node]['x']
-    center_y = G_proj.nodes[center_node]['y']
-
-    square = box(center_x - half_side, center_y - half_side,
-                 center_x + half_side, center_y + half_side)
-
-    nodes = [
-        n for n, data in G_proj.nodes(data=True)
-        if square.contains(Point(data['x'], data['y']))
-    ]
-
-    return {
-        'nodes': nodes,
-        'center_x': center_x,
-        'center_y': center_y,
-        'square': square,
-        'half_side': half_side,
-        'center_lat': center_lat,
-        'center_lon': center_lon,
-        'nb_miles': nb_miles
-    }
+from utils import get_square_mile_nodes, building_network_with_p
 
 
 def visualise_graph(G_proj, square_data, zoom=False):
@@ -110,6 +82,35 @@ def visualise_graph(G_proj, square_data, zoom=False):
 
     plt.show()
 
+
+def plot_p_values(p_values, N, grid_size):
+    plt.figure(figsize=(18, 18))
+
+    for idx, p in enumerate(p_values):
+        nodes, edges = building_network_with_p(N, grid_size, p)
+
+        plt.subplot(2, 2, idx + 1)
+
+        # Draw edges
+        for i, j, dist in edges:
+            pos_i = nodes[i]
+            pos_j = nodes[j]
+            plt.plot([pos_i[0], pos_j[0]], [pos_i[1], pos_j[1]], alpha=0.3)
+
+        # Draw nodes
+        plt.scatter(nodes[:, 0], nodes[:, 1], color='red', s=40, zorder=5)
+
+        plt.title(f"p = {p}")
+        plt.xlim(0, grid_size)
+        plt.ylim(0, grid_size)
+        plt.gca().set_aspect('equal', adjustable='box')
+
+    plt.suptitle(
+        f"Comparison of p values, N={N}, grid={grid_size}×{grid_size}",
+        fontsize=18
+    )
+    plt.tight_layout()
+    plt.show()
 
 G = ox.graph_from_place("Paris, France", network_type="drive")
 G_proj = ox.project_graph(G)

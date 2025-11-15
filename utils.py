@@ -1,5 +1,9 @@
 import heapq
+import math
 from heapq import heappush, heappop
+from shapely.geometry import box, Point
+import osmnx as ox
+import numpy as np
 def information_centrality(G):
     inf_centr = {}
     for i in G.nodes:
@@ -146,4 +150,141 @@ def general_contrib(S, P, sigma):
             if sigma[w] != 0:
                 delta[v] += (sigma[v] / sigma[w]) * (1.0 + delta[w])
     return delta
+
+
+def get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1):
+    """Get all nodes within a square area around a center point."""
+    mile = 1609.34
+    size = nb_miles * mile
+    half_side = size / 2
+
+    center_node = ox.distance.nearest_nodes(G, center_lon, center_lat)
+    center_x = G_proj.nodes[center_node]['x']
+    center_y = G_proj.nodes[center_node]['y']
+
+    square = box(center_x - half_side, center_y - half_side,
+                 center_x + half_side, center_y + half_side)
+
+    nodes = [
+        n for n, data in G_proj.nodes(data=True)
+        if square.contains(Point(data['x'], data['y']))
+    ]
+
+    return {
+        'nodes': nodes,
+        'center_x': center_x,
+        'center_y': center_y,
+        'square': square,
+        'half_side': half_side,
+        'center_lat': center_lat,
+        'center_lon': center_lon,
+        'nb_miles': nb_miles
+    }
+
+
+def node_density(square_data, grid_size):
+    """
+    Compute node density in meters² per node
+    for now nb miles always 1
+    """
+    nodes = square_data['nodes']
+    density = nodes / (grid_size * grid_size)
+    return density
+
+def median_calculator(array):
+    array = sorted(array)
+    n = len(array)
+    if n % 2 == 0:
+        return (array[(n - 1) // 2] + array[n // 2]) / 2
+    else:
+        return array[n // 2]
+
+def nodes_Size_compute(cities):
+    """
+    we define a default grid layout of m * m for one square mile
+    We calculate the median_density from our cities
+
+    N = median_density * total_cellsand
+    """
+    grid_size = 50
+    density_values = [node_density(city, grid_size) for city in cities]
+    print(density_values)
+    median_density = median_calculator(density_values)
+    print(median_density)
+    N = median_density * (grid_size * grid_size)
+
+    return int(N)
+
+
+def building_network_with_p(N, grid_size, p):
+    """
+    Build a grid network of size grid_size x grid_size
+    and connect nodes with probability p
+
+    puts nodes in spacing * 1 , spacing *2 ... , spacing * n
+    """
+    print(f"\nBuilding network: N={N}, grid={grid_size}×{grid_size}, p={p}")
+
+    # Step 1: Place N nodes on initial grid pattern
+    nodes_per_side = int(math.sqrt(N))  # e.g., √100 = 10
+    spacing = grid_size / nodes_per_side
+    nodes = []
+    for i in range(nodes_per_side):
+        for j in range(nodes_per_side):
+            x = int(i * spacing)
+            y = int(j * spacing)
+            nodes.append([x, y])
+
+    nodes = np.array(nodes)
+    moved_count = 0
+    for i in range(N):
+        if np.random.random() < p:
+            # THIS node moves to random position
+            nodes[i] = [
+                np.random.randint(0, grid_size),
+                np.random.randint(0, grid_size)
+            ]
+            moved_count += 1
+
+    # Step 3: Connect each node to 2 nearest neighbors
+    edges = []
+    connected = set()  # Track which edges we've added
+
+    # O(N^2) approach
+    for i in range(N):
+        # Compare with ALL other nodes
+        distances = []
+
+        for j in range(N):
+            if i != j:
+                # Calculate distance
+                dist = euclidean_distance(
+                    nodes[i][1], nodes[i][0],
+                    nodes[j][1], nodes[j][0]
+                )
+                distances.append((dist, j))
+
+        # Sort by distance
+        distances.sort()
+
+        # Connect to 2 closest
+        edges_added = 0
+        for dist, j in distances:
+            # Check if edge already exists (avoid duplicates)
+            edge_id = tuple(sorted([i, j]))  # (smaller, larger)
+
+            if edge_id not in connected:
+                edges.append((i, j, dist))
+                connected.add(edge_id)
+                edges_added += 1
+
+                if edges_added >= 2:
+                    break
+
+    print(f"  Edges: {len(edges)}, Avg degree: {2 * len(edges) / N:.2f}")
+
+    return nodes, edges
+
+
+
 
