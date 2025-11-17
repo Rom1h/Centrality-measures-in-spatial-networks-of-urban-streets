@@ -14,7 +14,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import os
 import networkx as nx
-from visualisation import get_square_mile_nodes, plot_p_values
+from visualisation import get_square_mile_nodes, plot_p_values,plot_cumulative_distribution_centrality
 
 # Make output folder
 os.makedirs("output", exist_ok=True)
@@ -140,3 +140,34 @@ N = nodes_Size_compute(cities)
 
 p_values = [0, 0.1, 0.2, 1]
 plot_p_values(p_values, N, grid_size)
+
+place_name = "Tour Eiffel,Paris,France"
+# place = "Times Square, Manhattan, New York, USA"
+
+point = ox.geocode(place_name)
+
+distance = 1609  # tu peux garder 2000m et ajuster si trop/pas assez de nœuds
+
+G_area = ox.graph_from_point(
+    point,
+    dist=distance,
+    network_type="drive_service"
+)
+
+# Important : projeter ce sous-graphe si vous utilisez la projection dans vos calculs
+G_sub_proj = ox.project_graph(G_area)
+
+print(f"Taille du sous-graphe de la zone ({distance}m) : {len(G_sub_proj.nodes)} noeuds")
+# --- Le calcul est désormais plus précis géographiquement ---
+bc_sub_area = betweenness_centrality(G_sub_proj, normalized=True)
+print(bc_sub_area)
+
+bw_values = list(bc_sub_area.values())
+
+plot_cumulative_distribution_centrality(
+    values=bw_values,
+    title="Cumulative distribution of betweenness – Richmond (2 km)",
+    output_file="betweenness_rich2.png",
+    model="gauss",
+    # valeur de σRich du papier si tu veux la forcer
+)

@@ -286,5 +286,65 @@ def building_network_with_p(N, grid_size, p):
     return nodes, edges
 
 
+def cumulative_distribution(values):
+    """
+    Calcule la distribution cumulée décroissante P(C) à partir d'une liste de valeurs.
+    P(C_k) = proportion de nœuds ayant une centralité >= C_k
+    """
+    vals = np.array(values, dtype=float)
+    # On enlève les NaN éventuels
+    vals = vals[~np.isnan(vals)]
+    vals = vals[vals > 0]
+
+
+    # Tri des valeurs par ordre croissant
+    vals_sorted = np.sort(vals)
+    n = len(vals_sorted)
+
+    # P(C) = 1 - F(C) = proba d'avoir une valeur >= C
+    y = 1.0 - np.arange(n) / n
+
+    return vals_sorted, y
+
+
+def expo_model(x, s):
+    """Modèle exponentiel pour le fit : P(C) = exp(-C/s)."""
+    return np.exp(-x / s)
+
+
+def fit_exponential(x, y):
+    # garder seulement les points > 0
+    mask = (x > 0) & (y > 0)
+    x_fit = x[mask]
+    y_fit = y[mask]
+
+    # modèle linéaire : ln P = a*C + b où a = -1/s
+    Y = np.log(y_fit)
+
+    # régression linéaire
+    a, b = np.polyfit(x_fit, Y, 1)
+
+    s = -1 / a
+    return s
+
+def gaussian_model(x, sigma):
+    return np.exp(-(x**2) / (2 * sigma**2))
+
+def fit_gaussian(x, y):
+    mask = (x > 0) & (y > 0)
+    x_fit = x[mask]
+    y_fit = y[mask]
+
+    X = x_fit**2
+    Y = np.log(y_fit)
+
+    # Régression linéaire Y = a * X + b
+    a, b = np.polyfit(X, Y, 1)
+
+    sigma = np.sqrt(-1 / (2 * a))   # car a = -1/(   2σ²)
+    return sigma
+
+
+
 
 

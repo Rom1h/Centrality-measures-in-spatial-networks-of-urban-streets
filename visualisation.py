@@ -6,7 +6,9 @@ import osmnx as ox
 import matplotlib.pyplot as plt
 from shapely.geometry import box, Point
 
-from utils import get_square_mile_nodes, building_network_with_p
+from utils import get_square_mile_nodes, building_network_with_p, cumulative_distribution, gaussian_model, fit_gaussian,expo_model,fit_exponential
+
+
 
 
 def visualise_graph(G_proj, square_data, zoom=False):
@@ -112,6 +114,7 @@ def plot_p_values(p_values, N, grid_size):
     plt.tight_layout()
     plt.show()
 
+"""
 G = ox.graph_from_place("Paris, France", network_type="drive")
 G_proj = ox.project_graph(G)
 center_lat, center_lon = ox.geocode("Notre-Dame, Paris, France")
@@ -122,3 +125,61 @@ visualise_graph(G_proj,notre_dame_data, zoom=False)
 
 # Zoomed view
 visualise_graph(G_proj,notre_dame_data, zoom=True)
+
+"""
+
+def plot_cumulative_distribution_centrality(
+    values,
+    method = "Centrality ",# betweenness
+    title="Cumulative distribution of betweenness",
+    output_file="betweenness_cumulative.png",
+    model="exp",# "exp" ou "gauss"
+):
+    x, y = cumulative_distribution(values)
+
+    # --- choix du modèle ---
+    if model == "exp":
+        param = fit_exponential(x, y)
+        y_fit = expo_model(x, param)
+        label_fit = f"Exp fit  P(C)≈exp(-C/s), s={param:.4f}"
+
+    elif model == "gauss":
+        param = fit_gaussian(x, y)
+        y_fit = gaussian_model(x, param)
+        label_fit = f"Gauss fit  P(C)≈exp(-C²/(2σ²)), σ={param:.4f}"
+
+    else:
+        raise ValueError("model doit être 'exp' ou 'gauss'")
+
+    # --- Plot ---
+    plt.figure(figsize=(6, 4))
+    plt.scatter(
+        x, y,
+        s=12,                 # taille des points
+        alpha=0.6,
+        label="Données (C_B)",
+        color="steelblue"
+    )
+
+    # Ligne lisse pour la courbe ajustée
+    plt.plot(
+        x, y_fit,
+        "--",
+        label=label_fit,
+        linewidth=2,
+        color="darkorange"
+    )
+
+    # Échelle log en Y
+    plt.yscale("log")
+
+    plt.xlabel(method +" centrality C_B")
+    plt.ylabel("P(C_B)")
+    plt.title(title)
+
+    plt.grid(True, which="both", linestyle=":", alpha=0.5)
+    plt.legend()
+
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=300)
+    print(f"Figure sauvegardée sous : {output_file}")
