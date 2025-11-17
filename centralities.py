@@ -1,4 +1,4 @@
-from utils import djikstra_shortest_paths, euclidean_distance, shortest_dijkstra, general_contrib
+from utils import djikstra_shortest_paths, euclidean_distance, shortest_dijkstra, general_contrib, efficiency
 
 
 def straightness(G_proj):
@@ -81,3 +81,21 @@ def betweenness_centrality(G, weight="length", normalized=True):
                 CB[v] /= norm
 
     return CB
+
+def information_centrality(G):
+    inf_centr = {}
+    for i in G.nodes:
+        N = len(G.nodes)
+
+        G_prime = G.copy()
+
+        G_prime.remove_node(i)
+
+        ef = efficiency(G, N)
+        ef_prime = efficiency(G_prime, N)
+        if ef != 0 :
+            inf_centr[i] = (ef - ef_prime) / ef
+        else : 
+            inf_centr[i] = 0
+
+    return inf_centr

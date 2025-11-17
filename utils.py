@@ -24,9 +24,9 @@ def sum_of_distance(G):
     djik_dist = {}
     sum_res = 0
     for i in G.nodes:
-        djik_dist = djikstra_shortest_paths(G, i)
-        for j in G.nodes:
-            if j != i and j in djik_dist :
+        djik_dist,_ = djikstra_shortest_paths(G, i)
+        for j in djik_dist :
+            if j != i :
                 res_eucl = euclidean_distance(G.nodes[i]["x"], G.nodes[i]["y"], G.nodes[j]["x"], G.nodes[j]["y"])
                 sum_res += res_eucl/djik_dist[j]
     return sum_res
