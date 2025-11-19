@@ -177,23 +177,24 @@ def get_city_centrality(place, dist=900, method="betweenness"):
 
     return centrality
 
-#CB_NY  = list(get_city_centrality("Times Square, Manhattan, New York, USA",method="information").values())
+CB_NY  = list(get_city_centrality("Times Square, Manhattan, New York, USA",method="str").values())
 #CB_LA  = list(get_city_centrality("Los Angeles, California, USA",method="str").values())
 #CB_RIC = list(get_city_centrality("Richmond, Virginia, USA",method="str").values())
-#CB_SG  = list(get_city_centrality("Downtown Core, Singapore",method="information").values())
-CB_MRS = list(get_city_centrality("Le Panier, Marseille, France",method="str").values())
-CB_LON = list(get_city_centrality("City of London, London, UK",method="str").values())
+CB_SG  = list(get_city_centrality("Downtown Core, Singapore",method="str").values())
+#CB_MRS = list(get_city_centrality("Le Panier, Marseille, France",method="str").values())
+#CB_LON = list(get_city_centrality("City of London, London, UK",method="str").values())
 #CB_Amh = list(get_city_centrality("Ahmedabad, India").values())
 #CB_Cairo = list(get_city_centrality("Tahrir Square, Cairo, Egypt").values())
 
 #place_name = "Tour Eiffel,Paris,France"
 
-"""
+
 organized = {
     "New York": CB_NY,
     "Singapore": CB_SG,
 }
 
+"""
 
 organized2 = {
     "Richmonde": CB_RIC,
@@ -206,12 +207,13 @@ self_organized = {
 }
 
 """
+"""
 self_organized = {
    "Marseille":CB_MRS,
    "Londre" : CB_LON
-}
+}"""
 
-#plot_multi_city_cdf(organized,model="exp", title="Organized cities CDF", output_file="organizedNY_S_I.png",method="I")
-plot_multi_city_cdf(self_organized, model="powerlaw", title="Self-Organized cities CDF", output_file="self_organizedA_C_I.png", method="I")
+plot_multi_city_cdf(organized,model="str", title="Organized cities CDF", output_file="organizedNY_S_S.png",method="S")
+#plot_multi_city_cdf(self_organized, model="str", title="Self-Organized cities CDF", output_file="self_organizedM_L_S.png", method="S")
 
 

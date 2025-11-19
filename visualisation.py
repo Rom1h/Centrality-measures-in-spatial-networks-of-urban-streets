@@ -184,39 +184,6 @@ def plot_cumulative_distribution_centrality(
     plt.savefig(output_file, dpi=300)
     print(f"Figure sauvegardée sous : {output_file}")
 
-def plot_multi_city_cdf1(city_data, title="CDF comparison", output_file=None):
-    """
-    city_data : dict
-        Clé = nom de la ville
-        Valeur = liste numpy des centralités (betweenness ou autre)
-    """
-
-    plt.figure(figsize=(6, 6))
-
-    for city_name, values in city_data.items():
-        x, y = cumulative_distribution(values)
-
-        plt.scatter(
-            x, y,
-            s=12,
-            alpha=0.7,
-            label=city_name
-        )
-
-    plt.yscale("log")
-    plt.xlabel("Centrality C")
-    plt.ylabel("P(C ≥ x)")
-    plt.title(title)
-    plt.grid(True, which="both", linestyle=":", alpha=0.3)
-    plt.legend()
-
-    plt.tight_layout()
-
-    if output_file:
-        plt.savefig(output_file, dpi=300)
-        print("Figure sauvegardée sous :", output_file)
-
-    plt.show()
 def plot_multi_city_cdf(city_data,
                         model="exp",              # "exp", "gauss" ou "powerlaw"
                         title="CDF comparison",
@@ -240,7 +207,6 @@ def plot_multi_city_cdf(city_data,
             s = fit_exponential(x, y)
             y_fit = expo_model(x, s)
             fit_label = f"{city_name}  exp(s={s:.4f})"
-
         elif model == "gauss":
             sigma = fit_gaussian(x, y)
             y_fit = gaussian_model(x, sigma)
@@ -267,7 +233,7 @@ def plot_multi_city_cdf(city_data,
     plt.yscale("log")
 
     plt.xlabel(f"Centrality C{method}")
-    plt.ylabel("P(C ≥ C)")
+    plt.ylabel("P(C)")
     plt.title(title)
     plt.grid(True, which="both", linestyle=":", alpha=0.3)
     plt.legend()
@@ -277,5 +243,4 @@ def plot_multi_city_cdf(city_data,
     if output_file is not None:
         plt.savefig(output_file, dpi=300)
         print("Figure sauvegardée sous :", output_file)
-
     plt.show()

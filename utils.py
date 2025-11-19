@@ -312,7 +312,6 @@ def expo_model(x, s):
 
 
 def fit_exponential(x, y):
-    # garder seulement les points > 0
     mask = (x > 0) & (y > 0)
     x_fit = x[mask]
     y_fit = y[mask]
@@ -352,7 +351,6 @@ def powerlaw_model(x, gamma, k=1.0):
 
 
 def fit_powerlaw(x, y):
-    # garder les points strictement entre 0 et 1
     mask = (x > 0) & (y > 0) & (y < 1)
     x_fit = x[mask]
     y_fit = y[mask]
@@ -364,7 +362,6 @@ def fit_powerlaw(x, y):
     # régression : Y = a*X + b
     a, b = np.polyfit(X, Y, 1)
 
-    # Exposant de la CCDF est a. Exposant de la PDF est -gamma.
     # a = -(gamma - 1)
     gamma = 1 - a
 
@@ -373,11 +370,14 @@ def fit_powerlaw(x, y):
 
     return gamma, k
 
+
 def stretched_exp_model(x, lam, beta, A=1.0):
     return A * np.exp(-(x / lam)**beta)
-def fit_stretched_exp_linear(x, y, xmin=None, xmax=None):
-    # on garde uniquement les points pertinents
-    mask = (x > 0) & (y > 0)
+
+def fit_stretched_exp_linear(x, y, xmin=None, xmax=None, ymax_excl=0.99):
+    # 1. Masquage pour l'ajustement
+    mask = (x > 0) & (y > 0) & (y < ymax_excl)
+
     if xmin is not None:
         mask &= (x >= xmin)
     if xmax is not None:
@@ -386,15 +386,24 @@ def fit_stretched_exp_linear(x, y, xmin=None, xmax=None):
     x_fit = x[mask]
     y_fit = y[mask]
 
-    # Transformation
+    # 2. Vérification de la validité
+    if len(x_fit) < 2:
+        # Retourne nan si pas assez de points pour la régression
+        return np.nan, np.nan
+
+        # 3. Transformation logarithmique (Double-log)
     X = np.log(x_fit)
     Y = np.log(-np.log(y_fit))
 
-    # Régression linéaire
+    # 4. Régression
     a, b = np.polyfit(X, Y, 1)
 
+    # 5. Calcul des paramètres
     beta = a
+    # Gérer la division par zéro si a est proche de zéro
+    if np.abs(a) < 1e-9:
+        return np.nan, beta
+
     lam = np.exp(-b / a)
 
     return lam, beta
-
