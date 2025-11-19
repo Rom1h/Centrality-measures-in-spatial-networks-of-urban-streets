@@ -24,10 +24,8 @@ def get_city_centrality(place, method="b"):
     Retourne : nom de ville, liste des centralités
     """
     center_lat, center_lon = ox.geocode(place)
-    G = ox.graph_from_point((center_lat,center_lon), dist=5000,
-                            network_type='drive')
     # 2. Street network
-    G = ox.graph_from_point((center_lat, center_lon), dist=5000,
+    G = ox.graph_from_point((center_lat, center_lon), dist=2000,
                             network_type='drive')
 
     # 3. Project graph
