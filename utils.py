@@ -1,6 +1,8 @@
 import heapq
 import math
 from heapq import heappush, heappop
+
+import networkx as nx
 from shapely.geometry import box, Point
 import osmnx as ox
 import numpy as np
@@ -181,6 +183,11 @@ def get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1):
     }
 
 
+
+"""
+            ****************BEGINNING OF RANDOM GENERATED GRAPHS FUNCTIONS****************-         
+"""
+
 def node_density(square_data, grid_size):
     """
     Compute node density in meters² per node
@@ -197,7 +204,6 @@ def median_calculator(array):
         return (array[(n - 1) // 2] + array[n // 2]) / 2
     else:
         return array[n // 2]
-
 def nodes_Size_compute(cities):
     """
     we define a default grid layout of m * m for one square mile
@@ -214,76 +220,198 @@ def nodes_Size_compute(cities):
 
     return int(N)
 
+def add_edge_lengths_to_graph(G, nodes, edges, grid_size=50, mile_in_meters=1609):
+    """
+    Add 'length' attribute (in meters) to each edge in the graph G.
+
+    nodes: Nx2 array of node coordinates (grid units)
+    edges: list of tuples (i, j, _) from building_network_with_p
+    """
+    unit_length = mile_in_meters / grid_size  # meters per grid unit
+
+    for i, j, _ in edges:
+        dx = (nodes[i][0] - nodes[j][0]) * unit_length
+        dy = (nodes[i][1] - nodes[j][1]) * unit_length
+        dist_meters = math.sqrt(dx**2 + dy**2)
+        # Add distance to the graph as 'length'
+        G[i][j]['length'] = dist_meters
+
+
+
+
+def convert_city_data(results):
+    """
+    Convert detailed square-mile results into the simple format:
+    { "nodes": num_nodes, "nb_miles": nb_miles }
+    """
+    cities_simple = []
+
+    for item in results:
+        if not item.get("success", False):
+            continue  # skip failed cities
+
+        cities_simple.append({
+            "nodes": item["num_nodes"],
+            "nb_miles": item["nb_miles"]
+        })
+
+    return cities_simple
+
+def get_city_square_data(cities, nb_miles=1):
+    """
+    Given a list of city names, download each network and return:
+    - city_name
+    - number of nodes inside the square-mile window
+    - nb_miles
+    - optionally a failure message
+    """
+    info_list = []
+
+    for city_name in cities:
+        print(f"\nProcessing {city_name}...")
+        try:
+            # 1. Geocode
+            center_lat, center_lon = ox.geocode(city_name)
+
+            # 2. Street network
+            G = ox.graph_from_point(
+                (center_lat, center_lon),
+                dist=2000,
+                network_type="drive"
+            )
+
+            # 3. Project graph
+            G_proj = ox.project_graph(G)
+
+            # 4. Extract square-mile nodes
+            square_data = get_square_mile_nodes(
+                G, G_proj, center_lat, center_lon, nb_miles
+            )
+            num_nodes = len(square_data["nodes"])
+
+            info_list.append({
+                "city_name": city_name,
+                "num_nodes": num_nodes,
+                "nb_miles": nb_miles,
+                "success": True
+            })
+
+        except Exception as e:
+            print(f"  ❌ Failed for {city_name}: {e}")
+            info_list.append({
+                "city_name": city_name,
+                "nodes": None,
+                "nb_miles": nb_miles,
+                "success": False,
+                "error": str(e)
+            })
+
+    return info_list
+
+
+
 
 def building_network_with_p(N, grid_size, p):
     """
     Build a grid network of size grid_size x grid_size
-    and connect nodes with probability p
+    and connect each node to its 2 nearest neighbors.
 
-    puts nodes in spacing * 1 , spacing *2 ... , spacing * n
+    Ensures exactly N nodes are created by using a rectangular
+    grid with dimensions chosen to fit N.
+    Randomization avoids duplicate positions.
     """
     print(f"\nBuilding network: N={N}, grid={grid_size}×{grid_size}, p={p}")
 
-    # Step 1: Place N nodes on initial grid pattern
-    nodes_per_side = int(math.sqrt(N))  # e.g., √100 = 10
-    spacing = grid_size / nodes_per_side
+    # choose grid dimensions that fit N nodes
+    nodes_per_side_x = max(1, int(math.floor(math.sqrt(N))))
+    nodes_per_side_y = max(1, int(math.ceil(N / nodes_per_side_x)))
+
+    # spacing along each axis
+    spacing_x = grid_size / nodes_per_side_x
+    spacing_y = grid_size / nodes_per_side_y
+
+    # Step 1: Place exactly N nodes on the grid
     nodes = []
-    for i in range(nodes_per_side):
-        for j in range(nodes_per_side):
-            x = int(i * spacing)
-            y = int(j * spacing)
+    for i in range(nodes_per_side_x):
+        for j in range(nodes_per_side_y):
+            if len(nodes) >= N:
+                break
+            x = int(i * spacing_x)
+            y = int(j * spacing_y)
             nodes.append([x, y])
+        if len(nodes) >= N:
+            break
 
     nodes = np.array(nodes)
+    assert len(nodes) == N, f"internal error: generated {len(nodes)} nodes but expected {N}"
+
+    # Step 2: Randomly move some nodes with probability p (no duplicates)
+    used_positions = set(tuple(pos) for pos in nodes)
     moved_count = 0
-    for i in range(N):
+
+    for i in range(len(nodes)):
         if np.random.random() < p:
-            # THIS node moves to random position
-            nodes[i] = [
-                np.random.randint(0, grid_size),
-                np.random.randint(0, grid_size)
-            ]
-            moved_count += 1
+            while True:
+                new_x = np.random.randint(0, grid_size)
+                new_y = np.random.randint(0, grid_size)
+                if (new_x, new_y) not in used_positions:
+                    used_positions.add((new_x, new_y))
+                    nodes[i] = [new_x, new_y]
+                    moved_count += 1
+                    break
 
-    # Step 3: Connect each node to 2 nearest neighbors
+    # Step 3: Connect each node to its 2 nearest neighbors (O(N^2))
     edges = []
-    connected = set()  # Track which edges we've added
+    connected = set()
+    M = len(nodes)
 
-    # O(N^2) approach
-    for i in range(N):
-        # Compare with ALL other nodes
+    for i in range(M):
         distances = []
+        for j in range(M):
+            if i == j:
+                continue
+            # use your euclidean_distance(y1,x1, y2,x2)
+            dist = euclidean_distance(
+                nodes[i][1], nodes[i][0],
+                nodes[j][1], nodes[j][0]
+            )
+            distances.append((dist, j))
 
-        for j in range(N):
-            if i != j:
-                # Calculate distance
-                dist = euclidean_distance(
-                    nodes[i][1], nodes[i][0],
-                    nodes[j][1], nodes[j][0]
-                )
-                distances.append((dist, j))
+        distances.sort(key=lambda t: t[0])
 
-        # Sort by distance
-        distances.sort()
-
-        # Connect to 2 closest
+        # connect to 2 closest nodes not already connected
         edges_added = 0
         for dist, j in distances:
-            # Check if edge already exists (avoid duplicates)
-            edge_id = tuple(sorted([i, j]))  # (smaller, larger)
-
+            edge_id = tuple(sorted((i, j)))
             if edge_id not in connected:
                 edges.append((i, j, dist))
                 connected.add(edge_id)
                 edges_added += 1
-
                 if edges_added >= 2:
                     break
 
-    print(f"  Edges: {len(edges)}, Avg degree: {2 * len(edges) / N:.2f}")
+    print(f"  Generated nodes: {len(nodes)}, moved: {moved_count}")
+    print(f"  Edges: {len(edges)}, Avg degree: {2 * len(edges) / len(nodes):.2f}")
 
     return nodes, edges
 
+def create_nx_graph_from_nodes_edges(nodes, edges):
+    G = nx.Graph()
+
+    # Add nodes with positions
+    for i, (x, y) in enumerate(nodes):
+        G.add_node(i, x=float(x), y=float(y))  # store coordinates as attributes
+
+    # Add edges with distance as weight
+    for i, j, dist in edges:
+        G.add_edge(i, j, weight=dist)
+
+    return G
+
+
+"""
+            ****************END OF RANDOM GENERATED GRAPHS FUNCTIONS****************-         
+"""
 
 def cumulative_distribution(values):
     """
@@ -306,6 +434,9 @@ def cumulative_distribution(values):
     return vals_sorted, y
 
 
+"""
+    ************* FIT FUNCTIONS ************
+"""
 def expo_model(x, s):
     """Modèle exponentiel pour le fit : P(C) = exp(-C/s)."""
     return np.exp(-x / s)
@@ -407,3 +538,7 @@ def fit_stretched_exp_linear(x, y, xmin=None, xmax=None, ymax_excl=0.99):
     lam = np.exp(-b / a)
 
     return lam, beta
+
+"""
+        ************ END OF FIT FUNCTIONS ************
+"""

@@ -1,7 +1,7 @@
 import matplotlib
 
 # Only for not docker
-# matplotlib.use('TkAgg')
+matplotlib.use('TkAgg')
 import osmnx as ox
 import matplotlib.pyplot as plt
 from shapely.geometry import box, Point
@@ -84,7 +84,9 @@ def visualise_graph(G_proj, square_data, zoom=False):
 
     plt.show()
 
-
+    """
+    ***************START OF RANDOM GENERATED VISUALISATION FUNCTIONS****************
+    """
 def plot_p_values(p_values, N, grid_size):
     plt.figure(figsize=(18, 18))
 
@@ -114,6 +116,59 @@ def plot_p_values(p_values, N, grid_size):
     plt.tight_layout()
     plt.show()
 
+def plot_cumulative_distribution_centralities_p(
+    datasets,
+    method="Centrality",
+    title="Cumulative distribution of centrality",
+    output_file="centrality_comparison.png",
+    model="exp",
+):
+    """
+    Plot cumulative distributions of multiple centrality datasets on the same graph.
+
+    This method is mainly used for P
+
+    datasets: list of tuples (values, label, color)
+    """
+    plt.figure(figsize=(7, 5))
+
+    for values, label, color in datasets:
+        x, y = cumulative_distribution(values)
+
+        # Fit
+        if model == "exp":
+            param = fit_exponential(x, y)
+            y_fit = expo_model(x, param)
+            label_fit = f"{label} - Exp fit s={param:.4f}"
+        elif model == "gauss":
+            param = fit_gaussian(x, y)
+            y_fit = gaussian_model(x, param)
+            label_fit = f"{label} - Gauss fit σ={param:.4f}"
+        elif model == "powerlaw":
+            gamma, k = fit_powerlaw(x, y)
+            y_fit = powerlaw_model(x, gamma, k=k)
+            label_fit = f"power-law(γ={gamma:.2f})"
+        else:
+            raise ValueError("model must be 'exp' or 'gauss'")
+
+        # Scatter actual data
+        plt.scatter(x, y, s=12, alpha=0.6, label=f"{label} data", color=color)
+        # Fitted curve
+        plt.plot(x, y_fit, "--", linewidth=2, label=label_fit, color=color)
+
+    plt.yscale("log")
+    plt.xlabel(f"Centrality {method}")
+    plt.ylabel("P(C_B)")
+    plt.title(title)
+    plt.grid(True, which="both", linestyle=":", alpha=0.5)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=300)
+    print(f"Figure saved as: {output_file}")
+
+    """
+    ***************END OF RANDOM GENERATED VISUALISATION FUNCTIONS****************
+    """
 """
 G = ox.graph_from_place("Paris, France", network_type="drive")
 G_proj = ox.project_graph(G)
