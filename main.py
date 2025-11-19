@@ -142,7 +142,7 @@ plot_p_values(p_values, N, grid_size)
 """
 
 
-def get_city_centrality(place, dist=1600, method="betweenness"):
+def get_city_centrality(place, dist=900, method="betweenness"):
     """
     Télécharge un sous-graphe autour d'un lieu et calcule sa centralité.
 
@@ -164,6 +164,9 @@ def get_city_centrality(place, dist=1600, method="betweenness"):
     elif method == "closeness":
         centrality = Closeness(G_proj)
     elif method == "information":
+        nodes = list(G_proj.nodes)
+        sample_nodes = random.sample(nodes, min(300, len(nodes)))  # maximum 200 nœuds
+        G_proj = G_proj.subgraph(sample_nodes)
         centrality = information_centrality(G_proj)
     elif method == "str":
 
@@ -174,24 +177,24 @@ def get_city_centrality(place, dist=1600, method="betweenness"):
 
     return centrality
 
-CB_NY  = list(get_city_centrality("Times Square, Manhattan, New York, USA",method="information").values())
+#CB_NY  = list(get_city_centrality("Times Square, Manhattan, New York, USA",method="information").values())
 #CB_LA  = list(get_city_centrality("Los Angeles, California, USA",method="str").values())
 #CB_RIC = list(get_city_centrality("Richmond, Virginia, USA",method="str").values())
-CB_SG  = list(get_city_centrality("Downtown Core, Singapore",method="information").values())
-#CB_MRS = list(get_city_centrality("Le Panier, Marseille, France",method="closeness").values())
-#CB_LON = list(get_city_centrality("City of London, London, UK",method="closeness").values())
+#CB_SG  = list(get_city_centrality("Downtown Core, Singapore",method="information").values())
+CB_MRS = list(get_city_centrality("Le Panier, Marseille, France",method="str").values())
+CB_LON = list(get_city_centrality("City of London, London, UK",method="str").values())
 #CB_Amh = list(get_city_centrality("Ahmedabad, India").values())
 #CB_Cairo = list(get_city_centrality("Tahrir Square, Cairo, Egypt").values())
 
 #place_name = "Tour Eiffel,Paris,France"
 
-
+"""
 organized = {
     "New York": CB_NY,
     "Singapore": CB_SG,
 }
 
-"""
+
 organized2 = {
     "Richmonde": CB_RIC,
     "LA": CB_LA,
@@ -201,137 +204,14 @@ self_organized = {
    "Ahmedabab":CB_MRS,
    "Cairo" : CB_LON
 }
+
 """
-
-
-#self_organized = {
-  #  "Marseille":CB_MRS,
- #   "Londre" : CB_LON
-#}
-plot_multi_city_cdf(organized,model="exp", title="Organized cities CDF", output_file="organizedNY_S_C.png",method="C")
-#plot_multi_city_cdf(self_organized, model="exp", title="Self-Organized cities CDF", output_file="self_organized1_C.png",method="C")
-
-""""
-place_NY = "Times Square, Manhattan, New York, USA"
-place_SING = "Downtown Core, Singapore"
-
-#place_name = "Tahrir Square, Cairo, Egypt"
-#place_name = "Downtown Los Angeles, California, USA"
-
-
-point_NY = ox.geocode(place_NY)
-
-distance = 1000  # tu peux garder 2000m et ajuster si trop/pas assez de nœuds
-
-G_area_NY = ox.graph_from_point(
-    point_NY,
-    dist=distance,
-    network_type="drive"
-)
-
-# Important : projeter ce sous-graphe si vous utilisez la projection dans vos calculs
-G_sub_proj = ox.project_graph(G_area)
-
-CB_NY = list(bc_sub_area.values())
-
-
-
-cdf_data = {
-    "Los Angeles": CB_LA,
-    "Richmond": CB_Richmond,
+self_organized = {
+   "Marseille":CB_MRS,
+   "Londre" : CB_LON
 }
-#print(f"Taille du sous-graphe de la zone ({distance}m) : {len(G_sub.nodes)} noeuds")
 
-# --- Le calcul est désormais plus précis géographiquement ---
-
-# bc_sub_area = betweenness_centrality(G_sub_proj, normalized=True)
-bc_sub_area = Closeness(G_sub_proj)
-
-#bc_sub_area = information_centrality(G_sub)
-
-print(bc_sub_area)
+#plot_multi_city_cdf(organized,model="exp", title="Organized cities CDF", output_file="organizedNY_S_I.png",method="I")
+plot_multi_city_cdf(self_organized, model="powerlaw", title="Self-Organized cities CDF", output_file="self_organizedA_C_I.png", method="I")
 
 
-plot_cumulative_distribution_centrality(
-    values=bw_values,
-    title="Cumulative distribution of betweenness – LA (1 miles)",
-    output_file="closeness_NY.png",
-    model="exp",
-)
-
-
-"""
-
-"""
-#bc = betweenness_centrality(G_walk_proj)
-#print(bc)
-# Exemple: Cibler la zone autour de la Tour Eiffel (coordonnées approximatives)
-place_name = "Downtown Core, Singapore"
-# Obtenir les coordonnées précises du lieu
-point = ox.geocode(place_name)
-
-# Définir le rayon en mètres (ex: 2000 mètres, soit 2 km)
-distance = 1000
-
-# Créer un sous-graphe dans un rayon de 2000m autour du point
-G_area = ox.graph_from_point(
-    point,
-    dist=distance,
-    network_type="drive" # Utiliser le même type que G
-)
-
-# Important : projeter ce sous-graphe si vous utilisez la projection dans vos calculs
-G_sub_proj = ox.project_graph(G_area)
-
-print(f"Taille du sous-graphe de la zone ({distance}m) : {len(G_sub_proj.nodes)} nœuds")
-# --- Le calcul est désormais plus précis géographiquement ---
-#bc_sub_area = betweenness_centrality(G_sub_proj, normalized=True)
-bc_sub_area = Closeness(G_sub_proj)
-
-print(bc_sub_area)
-
-import matplotlib.pyplot as plt
-import numpy as np
-import matplotlib.cm as cm
-import matplotlib.colors as colors
-import osmnx as ox
-
-# ---- Récupération des données pour scatter ----
-nodes = list(G_sub_proj.nodes())
-bc_values = np.array([bc_sub_area[n] for n in nodes])
-
-# Récupérer les positions
-x = np.array([G_sub_proj.nodes[n]['x'] for n in nodes])
-y = np.array([G_sub_proj.nodes[n]['y'] for n in nodes])
-
-# Normalisation couleurs
-norm = colors.Normalize(vmin=bc_values.min(), vmax=bc_values.max())
-cmap = cm.plasma
-node_colors = [cmap(norm(v)) for v in bc_values]
-
-
-# ---- DESSIN ----
-fig, ax = ox.plot_graph(G_sub_proj, show=False, close=False)
-
-# Ajouter les points par-dessus la carte
-ax.scatter(
-    x,
-    y,
-    s=30,
-    c=node_colors,
-    alpha=0.9,
-    edgecolors="none"
-)
-
-# Afficher colorbar
-sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-sm.set_array([])
-cbar = plt.colorbar(sm, ax=ax)
-cbar.set_label("Betweenness centrality")
-
-plt.title("Betweenness sur carte OSM")
-plt.savefig("output/karate_betweenness.png", dpi=300, bbox_inches="tight")
-
-plt.close()
-
-"""

@@ -347,29 +347,31 @@ def powerlaw_model(x, gamma, k=1.0):
     """
     Modèle power law : P(C) = k * C^(-gamma)
     """
-    return k * x**(-gamma)
+    exponent = -(gamma - 1)
+    return k * x ** (exponent)
 
 
 def fit_powerlaw(x, y):
-    """
-    Fit d'une loi de puissance P(C) ~ C^(-gamma)
-    via régression linéaire sur log-log.
-    Retourne gamma et k.
-    """
-    # garder seulement les points > 0
-    mask = (x > 0) & (y > 0)
+    # garder les points strictement entre 0 et 1
+    mask = (x > 0) & (y > 0) & (y < 1)
     x_fit = x[mask]
     y_fit = y[mask]
 
-    # Changement de variables : X = ln x, Y = ln y
+    # log-log
     X = np.log(x_fit)
     Y = np.log(y_fit)
 
-    # Régression linéaire Y = a X + b
+    # régression : Y = a*X + b
     a, b = np.polyfit(X, Y, 1)
 
-    gamma = -a           # a = -gamma
-    return gamma
+    # Exposant de la CCDF est a. Exposant de la PDF est -gamma.
+    # a = -(gamma - 1)
+    gamma = 1 - a
+
+    # Constante de normalisation k = e^b
+    k = np.exp(b)
+
+    return gamma, k
 
 def stretched_exp_model(x, lam, beta, A=1.0):
     return A * np.exp(-(x / lam)**beta)

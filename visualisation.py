@@ -221,7 +221,8 @@ def plot_multi_city_cdf(city_data,
                         model="exp",              # "exp", "gauss" ou "powerlaw"
                         title="CDF comparison",
                         output_file=None,
-                        method=""):
+                        method="",
+                        ) :
     """
     city_data : dict -> { "nom_ville": liste_centralités }
     model : "exp", "gauss" ou "powerlaw"
@@ -246,9 +247,9 @@ def plot_multi_city_cdf(city_data,
             fit_label = f"{city_name}  gauss(σ={sigma:.4f})"
 
         elif model == "powerlaw":
-            gamma = fit_powerlaw(x, y)
-            y_fit = powerlaw_model(x,gamma)
-            fit_label = f"{city_name}  power-law(γ={gamma:.2f})"
+            gamma, k = fit_powerlaw(x, y)
+            y_fit = powerlaw_model(x,gamma, k=k)
+            fit_label = f"{city_name} power-law(γ={gamma:.2f})"
         elif model == "str":
             lam, beta = fit_stretched_exp_linear(x, y)
             y_fit = stretched_exp_model(x, lam, beta)
