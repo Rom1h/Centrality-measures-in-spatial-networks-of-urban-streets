@@ -6,7 +6,7 @@ import osmnx as ox
 import matplotlib.pyplot as plt
 from shapely.geometry import box, Point
 
-from utils import get_square_mile_nodes, building_network_with_p, cumulative_distribution, gaussian_model, fit_gaussian,expo_model,fit_exponential
+from utils import get_square_mile_nodes, building_network_with_p, cumulative_distribution, gaussian_model, fit_gaussian,expo_model,fit_exponential,fit_powerlaw,powerlaw_model, fit_stretched_exp_linear, stretched_exp_model
 
 
 
@@ -183,3 +183,98 @@ def plot_cumulative_distribution_centrality(
     plt.tight_layout()
     plt.savefig(output_file, dpi=300)
     print(f"Figure sauvegardée sous : {output_file}")
+
+def plot_multi_city_cdf1(city_data, title="CDF comparison", output_file=None):
+    """
+    city_data : dict
+        Clé = nom de la ville
+        Valeur = liste numpy des centralités (betweenness ou autre)
+    """
+
+    plt.figure(figsize=(6, 6))
+
+    for city_name, values in city_data.items():
+        x, y = cumulative_distribution(values)
+
+        plt.scatter(
+            x, y,
+            s=12,
+            alpha=0.7,
+            label=city_name
+        )
+
+    plt.yscale("log")
+    plt.xlabel("Centrality C")
+    plt.ylabel("P(C ≥ x)")
+    plt.title(title)
+    plt.grid(True, which="both", linestyle=":", alpha=0.3)
+    plt.legend()
+
+    plt.tight_layout()
+
+    if output_file:
+        plt.savefig(output_file, dpi=300)
+        print("Figure sauvegardée sous :", output_file)
+
+    plt.show()
+def plot_multi_city_cdf(city_data,
+                        model="exp",              # "exp", "gauss" ou "powerlaw"
+                        title="CDF comparison",
+                        output_file=None,
+                        method=""):
+    """
+    city_data : dict -> { "nom_ville": liste_centralités }
+    model : "exp", "gauss" ou "powerlaw"
+    """
+
+    plt.figure(figsize=(7, 7))
+
+    for city_name, values in city_data.items():
+
+        # --- Distribution cumulée P(C ≥ x) ---
+        x, y = cumulative_distribution(values)
+
+        # --- Fit selon le modèle choisi ---
+        if model == "exp":
+            s = fit_exponential(x, y)
+            y_fit = expo_model(x, s)
+            fit_label = f"{city_name}  exp(s={s:.4f})"
+
+        elif model == "gauss":
+            sigma = fit_gaussian(x, y)
+            y_fit = gaussian_model(x, sigma)
+            fit_label = f"{city_name}  gauss(σ={sigma:.4f})"
+
+        elif model == "powerlaw":
+            gamma = fit_powerlaw(x, y)
+            y_fit = powerlaw_model(x,gamma)
+            fit_label = f"{city_name}  power-law(γ={gamma:.2f})"
+        elif model == "str":
+            lam, beta = fit_stretched_exp_linear(x, y)
+            y_fit = stretched_exp_model(x, lam, beta)
+            fit_label = f"Stretched exp  P(C)≈exp(-(C/λ)^β), λ={lam:.4f}, β={beta:.3f}"
+        else:
+            raise ValueError("model doit être 'exp', 'gauss' ou 'powerlaw'")
+
+        # --- Points de données ---
+        plt.scatter(x, y, s=10, alpha=0.7, label=city_name)
+
+        # --- Courbe de fit ---
+        plt.plot(x, y_fit, "--", linewidth=2, label=fit_label)
+
+    # --- Mise en forme générale ---
+    plt.yscale("log")
+
+    plt.xlabel(f"Centrality C{method}")
+    plt.ylabel("P(C ≥ C)")
+    plt.title(title)
+    plt.grid(True, which="both", linestyle=":", alpha=0.3)
+    plt.legend()
+
+    plt.tight_layout()
+
+    if output_file is not None:
+        plt.savefig(output_file, dpi=300)
+        print("Figure sauvegardée sous :", output_file)
+
+    plt.show()

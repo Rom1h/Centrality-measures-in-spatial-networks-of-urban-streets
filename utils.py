@@ -34,36 +34,35 @@ def sum_of_distance(G):
 def efficiency(G, N):
     sum_res = sum_of_distance(G)
     return sum_res/(N *(N - 1))
-
 def djikstra_shortest_paths(G, source, weight="length"):
-    """
-    Dijkstra's algorithm to compute shortest paths from a source node to all other nodes in the graph.
-    Returns both the distances dict and the total sum of distances.
 
-    Returns total distance so that we can avoid doing another O(n) in Closeness calculation.
-    """
-    distances = {source: 0}
+    distances = {node: float('inf') for node in G.nodes}
+    distances[source] = 0
+
     pq = [(0, source)]
     visited = set()
-    total_distance = 0  # accumulate distances here
 
     while pq:
-        concurrent_distance, current_node = heapq.heappop(pq)
-        if current_node in visited:
+        dist_u, u = heapq.heappop(pq)
+
+        if u in visited:
             continue
-        visited.add(current_node)
-        total_distance += concurrent_distance  # accumulate as we finalize a node
 
-        for neighbor in G.neighbors(current_node):
-            edge_weight = G[current_node][neighbor][0][weight]
-            distance = concurrent_distance + edge_weight
+        visited.add(u)
 
-            if neighbor not in distances or distance < distances[neighbor]:
-                distances[neighbor] = distance
-                heapq.heappush(pq, (distance, neighbor))
+        # Parcourir voisins
+        for v in G.neighbors(u):
+            edge_w = _edge_weight(G, u, v, weight=weight)
+            alt = dist_u + edge_w
+
+            if alt < distances[v]:
+                distances[v] = alt
+                heapq.heappush(pq, (alt, v))
+
+    # total_distance = somme des distances finies
+    total_distance = sum(d for d in distances.values() if d < float('inf'))
 
     return distances, total_distance
-
 
 def euclidean_distance(y1,x1, y2,x2):
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
@@ -344,7 +343,56 @@ def fit_gaussian(x, y):
     sigma = np.sqrt(-1 / (2 * a))   # car a = -1/(   2σ²)
     return sigma
 
+def powerlaw_model(x, gamma, k=1.0):
+    """
+    Modèle power law : P(C) = k * C^(-gamma)
+    """
+    return k * x**(-gamma)
 
 
+def fit_powerlaw(x, y):
+    """
+    Fit d'une loi de puissance P(C) ~ C^(-gamma)
+    via régression linéaire sur log-log.
+    Retourne gamma et k.
+    """
+    # garder seulement les points > 0
+    mask = (x > 0) & (y > 0)
+    x_fit = x[mask]
+    y_fit = y[mask]
 
+    # Changement de variables : X = ln x, Y = ln y
+    X = np.log(x_fit)
+    Y = np.log(y_fit)
+
+    # Régression linéaire Y = a X + b
+    a, b = np.polyfit(X, Y, 1)
+
+    gamma = -a           # a = -gamma
+    return gamma
+
+def stretched_exp_model(x, lam, beta, A=1.0):
+    return A * np.exp(-(x / lam)**beta)
+def fit_stretched_exp_linear(x, y, xmin=None, xmax=None):
+    # on garde uniquement les points pertinents
+    mask = (x > 0) & (y > 0)
+    if xmin is not None:
+        mask &= (x >= xmin)
+    if xmax is not None:
+        mask &= (x <= xmax)
+
+    x_fit = x[mask]
+    y_fit = y[mask]
+
+    # Transformation
+    X = np.log(x_fit)
+    Y = np.log(-np.log(y_fit))
+
+    # Régression linéaire
+    a, b = np.polyfit(X, Y, 1)
+
+    beta = a
+    lam = np.exp(-b / a)
+
+    return lam, beta
 

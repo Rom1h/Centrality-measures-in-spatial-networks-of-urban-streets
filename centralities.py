@@ -27,21 +27,37 @@ def straightness(G_proj):
 
         straightness[node] = total / (n - 1)
     return straightness
-
-def Closeness(G):
+def Closeness(G, weight="length"):
     """
-    Compute closeness centrality of a single node.
+    Closeness centrality for all nodes, with handling of disconnected graphs.
+    Returns a dict {node: closeness}, normalized as in NetworkX:
+        closeness = ((r-1) / sum_dist) * ((r-1) / (n-1))
+    where r = number of nodes reachable from node (including itself),
+    sum_dist = sum of shortest-path distances from node to reachable others.
+    If node cannot reach any other node (r<=1) -> closeness = 0.0
     """
-    n = len(G.nodes)
+    n = G.number_of_nodes()
     if n <= 1:
-        return 0.0
+        return {v: 0.0 for v in G.nodes()}
+
     closeness = {}
-    for node in G.nodes:
-        distances, total_distance = djikstra_shortest_paths(G, node)
-        if total_distance > 0:
-            closeness[node] = (n-1)/total_distance
+    for node in G.nodes():
+        distances, _ = djikstra_shortest_paths(G, node, weight=weight)
+        # reachable = nodes with finite distance
+        reachable_dists = [d for v, d in distances.items() if d < float("inf") and v != node]
+        r = len(reachable_dists) + 1  # include source
+        sum_dist = sum(reachable_dists)
+
+        if sum_dist > 0 and r > 1:
+            # first ratio = (r-1)/sum_dist
+            c = (r - 1) / sum_dist
+            # correction for disconnected graphs
+            if n > 1:
+                c *= (r - 1) / (n - 1)
+            closeness[node] = c
         else:
             closeness[node] = 0.0
+
     return closeness
 
 
@@ -84,18 +100,19 @@ def betweenness_centrality(G, weight="length", normalized=True):
 
 def information_centrality(G):
     inf_centr = {}
+    N = len(G.nodes)
+    ef = efficiency(G, N)
+
     for i in G.nodes:
-        N = len(G.nodes)
 
         G_prime = G.copy()
 
-        G_prime.remove_node(i)
+        G_prime.remove_edges_from(list(G_prime.edges(i)))
 
-        ef = efficiency(G, N)
         ef_prime = efficiency(G_prime, N)
         if ef != 0 :
             inf_centr[i] = (ef - ef_prime) / ef
-        else : 
+        else :
             inf_centr[i] = 0
 
     return inf_centr
