@@ -1,41 +1,53 @@
-# Docker
-Ce projet utilise Docker pour faciliter le déploiement et la gestion des dépendances.
-Voici comment configurer et utiliser Docker pour ce projet.
+# README Instructions
 
-### Prérequis
-Assurez-vous d’avoir Docker et Docker Compose installés sur votre machine.
-Vous pouvez les télécharger ici :
-- [Docker](https://docs.docker.com/engine/install/)
-- [Docker Compose](https://docs.docker.com/compose/install/)
+## Usage Instructions
 
-### Configuration
-Le projet utilise le fichier Dockerfile pour construire l’image de l’application.
-Toutes les dépendances Python du projet doivent être listées dans le fichier requirements.txt.
-Ce fichier est copié dans l’image, et les dépendances sont installées
- lors de la construction de l’image.
-
-### Construction de l'image
-Pour construire l’image Docker,
- utilisez la commande suivante dans le répertoire racine du projet (là où se trouve le Dockerfile) :
+### 1. Running the Main Script
 
 ```bash
-docker build -t nom_de_votre_image .
+./script.sh <PLACE> <METHOD> <MODEL>
 ```
-Pour exécuter l’image :
-```bash
-docker run nom_de_votre_image
-```
-#### Privilèges administrateur
-Selon la configuration de votre machine, il se peut que vous deviez exécuter les commandes Docker avec des privilèges administrateur. <br>
-Dans ce cas, il est préférable d’ajouter votre utilisateur au groupe Docker,afin de pouvoir exécuter les commandes sans utiliser sudo :
+
+**Example:**
 
 ```bash
-j'ajouterai la commande plus tard
+./script.sh "Los Angeles, California, USA" "b" "O"
 ```
-Si vous préférez malgré tout exécuter les commandes avec sudo (ce qui n’est pas recommandé), vous pouvez le faire ainsi :
+
+---
+
+### 2. Method Options
+
+| Code | Description                  |
+|------|------------------------------|
+| `b`  | Betweenness Centrality       |
+| `c`  | Closeness Centrality         |
+| `s`  | Straightness Centrality      |
+| `i`  | Information Centrality       |
+
+---
+
+### 3. Model Options
+
+| Code | Description                  |
+|------|------------------------------|
+| `O`   | Organised City               |
+| `SO`  | Self-Organised City          |
+
+---
+
+### 4. Running `random_generated_graphs.py`
+
+This script is **not executable**, so run it with Python directly:
+
 ```bash
-sudo docker build -t nom_de_votre_image .
+python random_generated_graphs.py
 ```
-```bash
-sudo docker run nom_de_votre_image
-```
+
+---
+
+### Notes
+
+- Make sure you have activated your virtual environment if needed.  
+- Ensure all dependencies (`networkx`, `osmnx`, etc.) are installed.
+
