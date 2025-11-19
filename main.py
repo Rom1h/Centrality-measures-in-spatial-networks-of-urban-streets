@@ -141,33 +141,74 @@ N = nodes_Size_compute(cities)
 p_values = [0, 0.1, 0.2, 1]
 plot_p_values(p_values, N, grid_size)
 
-place_name = "Tour Eiffel,Paris,France"
-# place = "Times Square, Manhattan, New York, USA"
+# place_name = "Khan el-Khalili bazaar, Cairo, Egypt"
+# # place = "Times Square, Manhattan, New York, USA"
+#
+# point = ox.geocode(place_name)
+#
+# distance = 1609  # tu peux garder 2000m et ajuster si trop/pas assez de nœuds
+#
+# G_area = ox.graph_from_point(
+#     point,
+#     dist=distance,
+#     network_type="drive_service"
+# )
+#
+# # Important : projeter ce sous-graphe si vous utilisez la projection dans vos calculs
+# G_sub_proj = ox.project_graph(G_area)
+#
+# print(f"Taille du sous-graphe de la zone ({distance}m) : {len(G_sub_proj.nodes)} noeuds")
+# # --- Le calcul est désormais plus précis géographiquement ---
+# bc_sub_area = betweenness_centrality(G_sub_proj, normalized=True)
+# print(bc_sub_area)
+#
+# bw_values = list(bc_sub_area.values())
 
-point = ox.geocode(place_name)
+# plot_cumulative_distribution_centrality(
+#     values=bw_values,
+#     title="Cumulative distribution of betweenness – Richmond 1609m",
+#     output_file="betweenness_rich2.png",
+#     model="exp",
+#     # valeur de σRich du papier si tu veux la forcer
+# )
 
-distance = 1609  # tu peux garder 2000m et ajuster si trop/pas assez de nœuds
+print("*" * 200)
 
-G_area = ox.graph_from_point(
-    point,
-    dist=distance,
-    network_type="drive_service"
-)
+# ---------------------------------------------------------
+# BUILD GRAPH FROM KHAN EL-KHALILI
+# ---------------------------------------------------------
 
-# Important : projeter ce sous-graphe si vous utilisez la projection dans vos calculs
-G_sub_proj = ox.project_graph(G_area)
+place_name = "Tahrir Square, Cairo, Egypt"
 
-print(f"Taille du sous-graphe de la zone ({distance}m) : {len(G_sub_proj.nodes)} noeuds")
-# --- Le calcul est désormais plus précis géographiquement ---
-bc_sub_area = betweenness_centrality(G_sub_proj, normalized=True)
-print(bc_sub_area)
+# Load full drive network for the city area
+G = ox.graph_from_place("Cairo, Egypt", network_typ="drive")
+G_proj = ox.project_graph(G)
+
+# Geocode center of Khan el-Khalili
+center_lat, center_lon = ox.geocode(place_name)
+
+# Extract 1-square-mile subgraph around the bazaar
+sub_data = get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1)
+print("*" * 60)
+print(sub_data)
+print("*" * 60)
+
+G_sub = G_proj.subgraph(sub_data["nodes"]).copy()
+print("Selected nodes:", sub_data["nodes"])
+
+# ---------------------------------------------------------
+# CENTRALITY COMPUTATIONS
+# ---------------------------------------------------------
+
+print("Calculating Betweenness Centrality...")
+bc_sub_area = betweenness_centrality(G_sub, normalized=True)
+print(f"Taille du sous-graphe de la zone: {len(G_sub.nodes)} noeuds")
 
 bw_values = list(bc_sub_area.values())
 
 plot_cumulative_distribution_centrality(
     values=bw_values,
-    title="Cumulative distribution of betweenness – Richmond (2 km)",
-    output_file="betweenness_rich2.png",
-    model="gauss",
-    # valeur de σRich du papier si tu veux la forcer
+    title="Cumulative distribution of betweenness – Khan el-Khalili (1 mile)",
+    output_file="betweenness_khan_el_khalili.png",
+    model="exp",
 )

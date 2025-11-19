@@ -331,19 +331,21 @@ def gaussian_model(x, sigma):
     return np.exp(-(x**2) / (2 * sigma**2))
 
 def fit_gaussian(x, y):
-    mask = (x > 0) & (y > 0)
+    # keep only positive y for the log()
+    mask = y > 0
     x_fit = x[mask]
     y_fit = y[mask]
 
     X = x_fit**2
     Y = np.log(y_fit)
 
-    # Régression linéaire Y = a * X + b
+    # Linear regression: Y = a*X + b
     a, b = np.polyfit(X, Y, 1)
 
-    sigma = np.sqrt(-1 / (2 * a))   # car a = -1/(   2σ²)
-    return sigma
+    sigma = np.sqrt(-1 / (2 * a))
+    amplitude = np.exp(b)
 
+    return sigma
 
 
 
