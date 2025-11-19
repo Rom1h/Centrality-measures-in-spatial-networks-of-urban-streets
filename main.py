@@ -142,7 +142,7 @@ plot_p_values(p_values, N, grid_size)
 """
 
 
-def get_city_centrality(place, dist=900, method="betweenness"):
+def get_city_centrality(city,place, method="betweenness"):
     """
     Télécharge un sous-graphe autour d'un lieu et calcule sa centralité.
 
@@ -150,51 +150,48 @@ def get_city_centrality(place, dist=900, method="betweenness"):
     Retourne : nom de ville, liste des centralités
     """
 
+    G = ox.graph_from_place(city, network_type="drive")
+    G_proj = ox.project_graph(G)
     # Récupération du point GPS
-    point = ox.geocode(place)
+    center_lat, center_lon = ox.geocode(place)
 
-    # Sous-graphe
-    G_area = ox.graph_from_point(point, dist=dist, network_type="drive")
+    sub_data = get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1)
 
     # Projection (important pour distances correctes)
-    G_proj = ox.project_graph(G_area)
+    G_sub = G_proj.subgraph(sub_data["nodes"]).copy()
     # Centralité
     if method == "betweenness":
-        centrality = betweenness_centrality(G_proj, normalized=True)
+        centrality = betweenness_centrality(G_sub, normalized=True)
     elif method == "closeness":
-        centrality = Closeness(G_proj)
+        centrality = Closeness(G_sub)
     elif method == "information":
-        nodes = list(G_proj.nodes)
-        sample_nodes = random.sample(nodes, min(300, len(nodes)))  # maximum 200 nœuds
-        G_proj = G_proj.subgraph(sample_nodes)
-        centrality = information_centrality(G_proj)
+        centrality = information_centrality(G_sub)
     elif method == "str":
 
-        centrality = straightness(G_proj)
+        centrality = straightness(G_sub)
 
     else:
         raise ValueError("method doit être 'betweenness' ou 'closeness'.")
 
     return centrality
 
-#CB_NY  = list(get_city_centrality("Times Square, Manhattan, New York, USA",method="information").values())
-#CB_LA  = list(get_city_centrality("Los Angeles, California, USA",method="str").values())
+CB_NY  = list(get_city_centrality("Manhattan, New York, USA","Times Square, Manhattan, New York, USA",method="betweenness").values())
+# CB_LA  = list(get_city_centrality("California, USA","Los Angeles, California, USA",method="betweenness").values())
 #CB_RIC = list(get_city_centrality("Richmond, Virginia, USA",method="str").values())
-#CB_SG  = list(get_city_centrality("Downtown Core, Singapore",method="information").values())
-CB_MRS = list(get_city_centrality("Le Panier, Marseille, France",method="str").values())
-CB_LON = list(get_city_centrality("City of London, London, UK",method="str").values())
+CB_SG  = list(get_city_centrality("Singapore","Downtown Core, Singapore",method="information").values())
+# CB_MRS = list(get_city_centrality("Marseille, France","Le Panier, Marseille, France",method="betweenness").values())
+# CB_LON = list(get_city_centrality("London, UK","City of London, London, UK",method="betweenness").values())
 #CB_Amh = list(get_city_centrality("Ahmedabad, India").values())
 #CB_Cairo = list(get_city_centrality("Tahrir Square, Cairo, Egypt").values())
 
 #place_name = "Tour Eiffel,Paris,France"
 
-"""
 organized = {
     "New York": CB_NY,
     "Singapore": CB_SG,
 }
 
-
+"""
 organized2 = {
     "Richmonde": CB_RIC,
     "LA": CB_LA,
@@ -206,12 +203,14 @@ self_organized = {
 }
 
 """
-self_organized = {
-   "Marseille":CB_MRS,
-   "Londre" : CB_LON
-}
-
+# self_organized = {
+#    "Marseille":CB_MRS,
+#    "Londre" : CB_LON
+# }
+filename_str = "_".join(organized.keys())
+model = "gauss"
+method = "B"
 #plot_multi_city_cdf(organized,model="exp", title="Organized cities CDF", output_file="organizedNY_S_I.png",method="I")
-plot_multi_city_cdf(self_organized, model="powerlaw", title="Self-Organized cities CDF", output_file="self_organizedA_C_I.png", method="I")
+plot_multi_city_cdf(organized, model=model, title="Self-Organized cities CDF", output_file=f"self_organized_{filename_str}.png", method=method)
 
 
