@@ -16,25 +16,28 @@ import os
 import networkx as nx
 from visualisation import get_square_mile_nodes, plot_p_values,plot_cumulative_distribution_centrality,plot_multi_city_cdf
 
-def get_city_centrality(city,place, method="b"):
+def get_city_centrality(place, method="b"):
     """
     Télécharge un sous-graphe autour d'un lieu et calcule sa centralité.
 
     method : "betweenness" ou "closeness"
     Retourne : nom de ville, liste des centralités
     """
+    center_lat, center_lon = ox.geocode(place)
+    G = ox.graph_from_point((center_lat,center_lon), dist=5000,
+                            network_type='drive')
+    # 2. Street network
+    G = ox.graph_from_point((center_lat, center_lon), dist=5000,
+                            network_type='drive')
 
-    G = ox.graph_from_place(city, network_type="drive")
+    # 3. Project graph
     G_proj = ox.project_graph(G)
-    # Récupération du point GPS
 
-    center_lat, center_lon = ox.geocode(place+","+city)
-
-    sub_data = get_square_mile_nodes(G, G_proj, center_lat, center_lon, nb_miles=1)
+    # 4. Extract square-mile nodes
+    square_data = get_square_mile_nodes(G, G_proj, center_lat, center_lon, 2500)
 
     # Projection (important pour distances correctes)
-    G_sub = G_proj.subgraph(sub_data["nodes"]).copy()
-    # Centralité
+    G_sub = G_proj.subgraph(square_data["nodes"]).copy()    # Centralité
     if method == "b":
         centrality = betweenness_centrality(G_sub, normalized=True)
     elif method == "c":
@@ -51,7 +54,7 @@ def get_city_centrality(city,place, method="b"):
     return centrality
 
 
-def main(city: str, place: str, method: str, model: str):
+def main( place: str, method: str, model: str):
     """
     Exécute l'analyse de centralité pour un seul lieu et trace la CCDF ajustée.
 
@@ -64,24 +67,23 @@ def main(city: str, place: str, method: str, model: str):
     # --- 1. Préparation du lieu et de la structure de données ---
 
     # city_name est le nom court utilisé dans le dictionnaire et le titre
-    city_name = city.split(', ')[0]
 
     # Le dictionnaire 'city_data' doit contenir le nom de la ville et les valeurs de centralité
     city_data = {}
 
     # --- 2. Calcul des centralités ---
-    print(f"-> Calcul de la centralité '{method}' pour {city_name}...")
+    print(f"-> Calcul de la centralité '{method}' pour{place}")
 
     # On suppose que get_city_centrality retourne la liste des valeurs de centralité
-    C = get_city_centrality(city, place, method=method)
+    C = get_city_centrality(place, method=method)
 
     # Remplissage du dictionnaire pour le tracé (clé=nom, valeur=liste des centralités)
-    city_data[city_name] = list(C.values())
+    city_data[place] = list(C.values())
 
     # --- 3. Détermination du modèle de fit et Tracé ---
 
     # Définition des variables de sortie
-    output_name = city_name
+    output_name = "output"
     title = f"Distribution de la Centralité {method.upper()} pour {output_name} ({model})"
     output_file = f"CCDF_{method}_{output_name}.png"
 
@@ -140,15 +142,7 @@ if __name__ == '__main__':
         formatter_class=argparse.RawTextHelpFormatter
     )
 
-    # NOUVEL ARGUMENT : Le nom général de la ville
-    parser.add_argument(
-        '--city',
-        type=str,
-        required=True,
-        help="Nom complet de la ville (e.g., 'Manhattan, New York, USA')"
-    )
 
-    # NOUVEL ARGUMENT : Le lieu de focus à l'intérieur de la ville
     parser.add_argument(
         '--place',
         type=str,
@@ -156,7 +150,6 @@ if __name__ == '__main__':
         help="Lieu de focus spécifique dans la ville (e.g., 'Times Square')"
     )
 
-    # NOTE: J'ai corrigé les 'choices' pour 'method' et 'model' pour qu'elles correspondent à la logique de la fonction main
 
     parser.add_argument(
         '--method',
@@ -176,10 +169,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    # Exécution de la fonction main avec les arguments du parser
-    # On utilise maintenant args.city et args.place, et on mappe les variables
     main(
-        city=args.city,
         place=args.place,
         method=args.method,
         model=args.model
